@@ -1,0 +1,42 @@
+name: PHP Lint & Testing
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, gd, curl, xml
+      
+      - name: Check PHP Syntax
+        run: |
+          find . -name "*.php" -type f ! -path "./vendor/*" -exec php -l {} \;
+      
+      - name: Check for security issues
+        run: |
+          echo "Checking for hardcoded credentials..."
+          grep -r "password.*=" --include="*.php" | grep -v "password_hash\|password_verify" || true
+          echo "Checking for SQL injection patterns..."
+          grep -r "\$_" --include="*.php" | grep -v "\$_SERVER\|bindParam\|bind_param" | head -20 || true
+      
+      - name: Check file permissions
+        run: |
+          echo "Checking for suspicious file permissions..."
+          find . -type f -perm 777 2>/dev/null || echo "No 777 files found (good)"
+          find . -name ".env" 2>/dev/null && echo "WARNING: .env file found in repo!" || echo "No .env in repo (good)"
+      
+      - name: Check code style
+        run: |
+          echo "Checking PHP naming conventions..."
+          find . -name "*.php" -type f ! -path "./vendor/*" -exec grep -l "function [a-z]*_[a-z]*" {} \; | head -10 || true

@@ -30,6 +30,7 @@ Açık kaynak, profesyonel otel web sitesi ve yönetim paneli. Modern tasarım, 
 ```bash
 git clone https://github.com/yamanfurkan353-eng/masterstudio.git
 cd masterstudio
+cp .env.example .env  # Yapılandırma dosyasını oluştur
 docker-compose up -d
 ```
 - **Site:** http://localhost
@@ -37,7 +38,8 @@ docker-compose up -d
 - **phpMyAdmin:** http://localhost:8080
 
 ### Manuel Kurulum
-Detaylı kurulum rehberi için [INSTALL.md](INSTALL.md) dosyasına bakınız.
+- **Local Development (PC/Mac/Linux):** [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) dosyasına bakın
+- **Server Deployment:** [KURULUM_TALIMAT.md](KURULUM_TALIMAT.md) dosyasına bakın
 
 ## 🎯 Özellikler
 
@@ -235,12 +237,23 @@ MIT Lisansı altında dağıtılmaktadır.
 
 ## 📚 Dokümantasyon
 
-- [**INSTALL.md**](INSTALL.md) - Genel kurulum rehberi
-- [**KURULUM_TALIMAT.md**](KURULUM_TALIMAT.md) - Detaylı Türkçe kurulum rehberi (Windows, Linux, macOS, VDS/VPS)
-- [**CONTRIBUTING.md**](CONTRIBUTING.md) - Katkı yapma rehberi (kod standardları, PR süreci)
-- [**CODE_OF_CONDUCT.md**](CODE_OF_CONDUCT.md) - Topluluk davranış kuralları
-- [**SECURITY.md**](SECURITY.md) - Güvenlik politikası ve iyi uygulamalar
-- [**CHANGELOG.md**](CHANGELOG.md) - Sürüm geçmişi ve değişiklikler
+### 🚀 Başlamak İçin
+- [**INSTALL.md**](INSTALL.md) - Hızlı kurulum (5-10 dakika)
+- [**LOCAL_DEVELOPMENT.md**](LOCAL_DEVELOPMENT.md) - PC/Mac/Linux'ta kurulum (kendi bilgisayarına)
+
+### 📖 Detaylı Rehberler
+- [**KURULUM_TALIMAT.md**](KURULUM_TALIMAT.md) - Sunuda kurulum (Windows, Linux, macOS, VDS/VPS, Docker)
+- [**CONFIG.md**](CONFIG.md) - Yapılandırma ve özelleştirme
+- [**DEPLOYMENT.md**](DEPLOYMENT.md) - Produksiyona çıkma kontrol listesi
+
+### 👥 Topluluk
+- [**CONTRIBUTING.md**](CONTRIBUTING.md) - Katkı yapma rehberi
+- [**CODE_OF_CONDUCT.md**](CODE_OF_CONDUCT.md) - Davranış kuralları
+- [**AÇIK_KAYNAK_REHBERI.md**](AÇIK_KAYNAK_REHBERI.md) - Açık kaynak yapısı
+
+### 🔒 Güvenlik & Sürüm
+- [**SECURITY.md**](SECURITY.md) - Güvenlik politikası ve best practices
+- [**CHANGELOG.md**](CHANGELOG.md) - Sürüm geçmişi
 - [**LICENSE.md**](LICENSE.md) - MIT Lisansı
 
 ---

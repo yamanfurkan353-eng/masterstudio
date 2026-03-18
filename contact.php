@@ -1,31 +1,50 @@
 <?php
 session_start();
 require_once 'core/config.php';
+require_once 'core/functions.php';
+
+set_security_headers();
 
 $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
 $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = htmlspecialchars(trim($_POST['name'] ?? ''));
-    $email = htmlspecialchars(trim($_POST['email'] ?? ''));
-    $subject = htmlspecialchars(trim($_POST['subject'] ?? ''));
-    $message_text = htmlspecialchars(trim($_POST['message'] ?? ''));
+    $name = sanitize_input($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $subject = sanitize_input($_POST['subject'] ?? '');
+    $message_text = sanitize_input($_POST['message'] ?? '');
 
-    if (!empty($name) && !empty($email) && !empty($subject) && !empty($message_text)) {
-        // E-posta gönder
+    if (empty($name) || empty($email) || empty($subject) || empty($message_text)) {
+        $error = 'Lütfen tüm alanları doldurunuz.';
+    } elseif (!validate_email($email)) {
+        $error = 'Geçerli bir e-posta adresi giriniz.';
+    } elseif (strlen($name) < 2 || strlen($name) > 100) {
+        $error = 'İsim 2-100 karakter arasında olmalıdır.';
+    } elseif (strlen($subject) < 2 || strlen($subject) > 200) {
+        $error = 'Konu 2-200 karakter arasında olmalıdır.';
+    } elseif (strlen($message_text) > 5000) {
+        $error = 'Mesaj en fazla 5000 karakter olabilir.';
+    } else {
+        // E-posta gönder - header injection korumalı
         $to = $hotel['email'] ?? 'info@example.com';
-        $headers = "From: " . $email . "\r\n";
-        $headers .= "Reply-To: " . $email . "\r\n";
-        $body = "Ad: " . $name . "\r\nE-posta: " . $email . "\r\n\r\nMesaj:\r\n" . $message_text;
+        $safe_email = filter_var($email, FILTER_SANITIZE_EMAIL);
+
+        // Header injection önleme - satır sonu karakterleri temizle
+        $safe_email = str_replace(["\r", "\n", "%0a", "%0d"], '', $safe_email);
+        $safe_name = str_replace(["\r", "\n", "%0a", "%0d"], '', $name);
+
+        $headers = "From: noreply@" . ($_SERVER['HTTP_HOST'] ?? 'masterstudio.com') . "\r\n";
+        $headers .= "Reply-To: " . $safe_email . "\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $body = "Ad: " . $safe_name . "\r\nE-posta: " . $safe_email . "\r\n\r\nMesaj:\r\n" . $message_text;
 
         if (mail($to, $subject, $body, $headers)) {
             $message = 'Mesajınız başarıyla gönderildi. En kısa sürede size döneceğiz.';
         } else {
             $error = 'Mesaj gönderilirken hata oluştu. Lütfen tekrar deneyin.';
+            error_log("Mail send failed to: $to");
         }
-    } else {
-        $error = 'Lütfen tüm alanları doldurunuz.';
     }
 }
 ?>
@@ -37,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>İletişim - MasterStudio Hotel</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/dark.css" id="theme-style">
+    <link rel="stylesheet" href="assets/css/<?php echo ($_SESSION['theme'] ?? 'light'); ?>.css" id="theme-style">
 </head>
 <body>
     <header>
@@ -79,23 +98,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <section style="padding: 60px 0;">
             <div class="container">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
-                    
+
                     <!-- Contact Info -->
                     <div>
                         <h2 style="margin-bottom: 30px; font-size: 28px;">İletişim Bilgilerimiz</h2>
-                        
+
                         <div style="margin-bottom: 30px;">
-                            <h3 style="color: #667eea; margin-bottom: 10px;">📍 Adres</h3>
+                            <h3 style="color: #667eea; margin-bottom: 10px;">Adres</h3>
                             <p style="color: var(--text-color);"><?php echo htmlspecialchars($hotel['address_tr'] ?? 'İstanbul, Türkiye'); ?></p>
                         </div>
 
                         <div style="margin-bottom: 30px;">
-                            <h3 style="color: #667eea; margin-bottom: 10px;">📞 Telefon</h3>
+                            <h3 style="color: #667eea; margin-bottom: 10px;">Telefon</h3>
                             <p style="color: var(--text-color);"><?php echo htmlspecialchars($hotel['phone'] ?? '+90 212 XXXXXXX'); ?></p>
                         </div>
 
                         <div style="margin-bottom: 30px;">
-                            <h3 style="color: #667eea; margin-bottom: 10px;">📧 E-posta</h3>
+                            <h3 style="color: #667eea; margin-bottom: 10px;">E-posta</h3>
                             <p style="color: var(--text-color);">
                                 <a href="mailto:<?php echo htmlspecialchars($hotel['email'] ?? 'info@example.com'); ?>" style="color: #667eea; text-decoration: none;">
                                     <?php echo htmlspecialchars($hotel['email'] ?? 'info@example.com'); ?>
@@ -104,20 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div style="margin-bottom: 30px;">
-                            <h3 style="color: #667eea; margin-bottom: 15px;">🕐 Çalışma Saatleri</h3>
+                            <h3 style="color: #667eea; margin-bottom: 15px;">Çalışma Saatleri</h3>
                             <p style="color: var(--text-color);">
                                 <strong>Pazartesi - Pazar</strong><br>
                                 24 Saat Açık (Özel Rezervasyonlar İçin)
                             </p>
-                        </div>
-
-                        <div style="margin-bottom: 30px;">
-                            <h3 style="color: #667eea; margin-bottom: 15px;">📱 Sosyal Medya</h3>
-                            <div style="display: flex; gap: 15px;">
-                                <a href="https://facebook.com" target="_blank" style="color: #667eea; text-decoration: none; font-size: 18px;">Facebook</a>
-                                <a href="https://twitter.com" target="_blank" style="color: #667eea; text-decoration: none; font-size: 18px;">Twitter</a>
-                                <a href="https://instagram.com" target="_blank" style="color: #667eea; text-decoration: none; font-size: 18px;">Instagram</a>
-                            </div>
                         </div>
                     </div>
 
@@ -127,20 +137,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php if (!empty($message)): ?>
                             <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                                ✓ <?php echo $message; ?>
+                                <?php echo htmlspecialchars($message); ?>
                             </div>
                         <?php endif; ?>
 
                         <?php if (!empty($error)): ?>
                             <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                                ✗ <?php echo $error; ?>
+                                <?php echo htmlspecialchars($error); ?>
                             </div>
                         <?php endif; ?>
 
                         <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
                             <div class="form-group">
                                 <label for="name">Adınız *</label>
-                                <input type="text" id="name" name="name" required>
+                                <input type="text" id="name" name="name" required minlength="2" maxlength="100">
                             </div>
 
                             <div class="form-group">
@@ -150,12 +160,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <div class="form-group">
                                 <label for="subject">Konu *</label>
-                                <input type="text" id="subject" name="subject" required>
+                                <input type="text" id="subject" name="subject" required minlength="2" maxlength="200">
                             </div>
 
                             <div class="form-group">
                                 <label for="message">Mesaj *</label>
-                                <textarea id="message" name="message" rows="6" required></textarea>
+                                <textarea id="message" name="message" rows="6" required maxlength="5000"></textarea>
                             </div>
 
                             <button type="submit" class="btn btn-primary" style="padding: 12px; font-size: 16px;">Gönder</button>
@@ -170,9 +180,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="container">
             <p>&copy; <?php echo date('Y'); ?> MasterStudio Hotel. Tüm Hakları Saklıdır.</p>
             <div class="social-links">
-                <a href="https://facebook.com" target="_blank">Facebook</a>
-                <a href="https://twitter.com" target="_blank">Twitter</a>
-                <a href="https://instagram.com" target="_blank">Instagram</a>
+                <a href="#" target="_blank">Facebook</a>
+                <a href="#" target="_blank">Twitter</a>
+                <a href="#" target="_blank">Instagram</a>
             </div>
         </div>
     </footer>

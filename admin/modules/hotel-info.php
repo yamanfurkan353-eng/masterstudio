@@ -1,51 +1,62 @@
 <?php
 session_start();
 require_once '../../core/config.php';
+require_once '../../core/functions.php';
 require_once '../includes/check-admin.php';
 
 $message = '';
 $error = '';
+$current_page = 'hotel-info';
+$sidebar_base = '../';
 
 // Mevcut otel bilgilerini al
 $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
 
 // Otel bilgilerini güncelle
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name_tr = $_POST['name_tr'] ?? '';
-    $name_en = $_POST['name_en'] ?? '';
-    $description_tr = $_POST['description_tr'] ?? '';
-    $description_en = $_POST['description_en'] ?? '';
-    $address_tr = $_POST['address_tr'] ?? '';
-    $address_en = $_POST['address_en'] ?? '';
-    $phone = $_POST['phone'] ?? '';
-    $email = $_POST['email'] ?? '';
+    verify_csrf_token();
+
+    $name_tr = trim($_POST['name_tr'] ?? '');
+    $name_en = trim($_POST['name_en'] ?? '');
+    $description_tr = trim($_POST['description_tr'] ?? '');
+    $description_en = trim($_POST['description_en'] ?? '');
+    $address_tr = trim($_POST['address_tr'] ?? '');
+    $address_en = trim($_POST['address_en'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $check_in_time = $_POST['check_in_time'] ?? '14:00:00';
     $check_out_time = $_POST['check_out_time'] ?? '11:00:00';
     $star_rating = intval($_POST['star_rating'] ?? 5);
 
-    if (!empty($name_tr)) {
+    if (empty($name_tr)) {
+        $error = 'Lütfen otel adını giriniz.';
+    } elseif (!empty($email) && !validate_email($email)) {
+        $error = 'Geçerli bir e-posta adresi giriniz.';
+    } elseif (!empty($phone) && !validate_phone($phone)) {
+        $error = 'Geçerli bir telefon numarası giriniz.';
+    } elseif ($star_rating < 1 || $star_rating > 5) {
+        $error = 'Yıldız derecelendirmesi 1-5 arasında olmalıdır.';
+    } else {
         if ($hotel) {
-            // Güncelle
             $stmt = $conn->prepare("UPDATE hotel_info SET name_tr=?, name_en=?, description_tr=?, description_en=?, address_tr=?, address_en=?, phone=?, email=?, check_in_time=?, check_out_time=?, star_rating=? WHERE id=?");
             $id = $hotel['id'];
             $stmt->bind_param("ssssssssssii", $name_tr, $name_en, $description_tr, $description_en, $address_tr, $address_en, $phone, $email, $check_in_time, $check_out_time, $star_rating, $id);
         } else {
-            // Ekle
             $stmt = $conn->prepare("INSERT INTO hotel_info (name_tr, name_en, description_tr, description_en, address_tr, address_en, phone, email, check_in_time, check_out_time, star_rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("ssssssssssi", $name_tr, $name_en, $description_tr, $description_en, $address_tr, $address_en, $phone, $email, $check_in_time, $check_out_time, $star_rating);
         }
 
         if ($stmt->execute()) {
             $message = 'Otel bilgileri başarıyla güncellendi!';
-            // Yeni verileri al
             $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
         } else {
             $error = 'Güncelleme sırasında hata oluştu.';
         }
-    } else {
-        $error = 'Lütfen otel adını giriniz.';
+        $stmt->close();
     }
 }
+
+set_security_headers();
 ?>
 
 <!DOCTYPE html>
@@ -58,22 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="admin-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>MasterStudio</h2>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="../index.php">Dashboard</a></li>
-                    <li><a href="reservations.php">Rezervasyonlar</a></li>
-                    <li><a href="room-types.php">Oda Tipleri</a></li>
-                    <li><a href="rooms.php">Odalar</a></li>
-                    <li><a href="hotel-info.php" class="active">Otel Bilgileri</a></li>
-                    <li><a href="pages.php">Sayfalar</a></li>
-                    <li><a href="settings.php">Ayarlar</a></li>
-                </ul>
-            </nav>
-        </aside>
+        <?php include '../includes/sidebar.php'; ?>
 
         <main class="content">
             <header class="top-bar">
@@ -82,16 +78,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <section class="form-section">
                 <?php if (!empty($message)): ?>
-                    <div class="alert alert-success"><?php echo $message; ?></div>
+                    <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
                 <?php endif; ?>
 
                 <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger"><?php echo $error; ?></div>
+                    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
                 <?php endif; ?>
 
                 <form method="POST" class="form">
+                    <?php echo csrf_field(); ?>
+
                     <div class="form-group">
-                        <label for="name_tr">Otel Adı (TR):</label>
+                        <label for="name_tr">Otel Adı (TR): *</label>
                         <input type="text" id="name_tr" name="name_tr" value="<?php echo htmlspecialchars($hotel['name_tr'] ?? ''); ?>" required>
                     </div>
 
@@ -132,22 +130,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="form-group">
                         <label for="check_in_time">Giriş Saati:</label>
-                        <input type="time" id="check_in_time" name="check_in_time" value="<?php echo $hotel['check_in_time'] ?? '14:00:00'; ?>">
+                        <input type="time" id="check_in_time" name="check_in_time" value="<?php echo htmlspecialchars($hotel['check_in_time'] ?? '14:00:00'); ?>">
                     </div>
 
                     <div class="form-group">
                         <label for="check_out_time">Çıkış Saati:</label>
-                        <input type="time" id="check_out_time" name="check_out_time" value="<?php echo $hotel['check_out_time'] ?? '11:00:00'; ?>">
+                        <input type="time" id="check_out_time" name="check_out_time" value="<?php echo htmlspecialchars($hotel['check_out_time'] ?? '11:00:00'); ?>">
                     </div>
 
                     <div class="form-group">
                         <label for="star_rating">Yıldız Derecelendirmesi:</label>
                         <select id="star_rating" name="star_rating">
-                            <option value="1" <?php echo (($hotel['star_rating'] ?? 5) == 1) ? 'selected' : ''; ?>>1 Yıldız</option>
-                            <option value="2" <?php echo (($hotel['star_rating'] ?? 5) == 2) ? 'selected' : ''; ?>>2 Yıldız</option>
-                            <option value="3" <?php echo (($hotel['star_rating'] ?? 5) == 3) ? 'selected' : ''; ?>>3 Yıldız</option>
-                            <option value="4" <?php echo (($hotel['star_rating'] ?? 5) == 4) ? 'selected' : ''; ?>>4 Yıldız</option>
-                            <option value="5" <?php echo (($hotel['star_rating'] ?? 5) == 5) ? 'selected' : ''; ?>>5 Yıldız</option>
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <option value="<?php echo $i; ?>" <?php echo (($hotel['star_rating'] ?? 5) == $i) ? 'selected' : ''; ?>><?php echo $i; ?> Yıldız</option>
+                            <?php endfor; ?>
                         </select>
                     </div>
 

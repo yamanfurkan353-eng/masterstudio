@@ -1,11 +1,29 @@
 <?php
 session_start();
-require_once '../../core/config.php';
+require_once '../core/config.php';
+require_once '../core/functions.php';
 require_once 'includes/check-admin.php';
+
+$current_page = 'dashboard';
+$sidebar_base = '';
+
+// Dashboard istatistikleri - tek optimize sorgu
+$stats_query = $conn->query("SELECT
+    COUNT(*) as total,
+    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+    SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+    FROM reservations");
+$stats = $stats_query->fetch_assoc();
 
 // Son rezervasyonları al
 $reservations = $conn->query("SELECT * FROM reservations ORDER BY created_at DESC LIMIT 5");
-$total_reservations = $conn->query("SELECT COUNT(*) as count FROM reservations")->fetch_assoc()['count'];
+
+// Oda istatistikleri
+$room_stats = $conn->query("SELECT COUNT(*) as total_rooms, SUM(CASE WHEN is_available THEN 1 ELSE 0 END) as available FROM rooms");
+$room_info = $room_stats ? $room_stats->fetch_assoc() : ['total_rooms' => 0, 'available' => 0];
+
+set_security_headers();
 ?>
 
 <!DOCTYPE html>
@@ -14,31 +32,11 @@ $total_reservations = $conn->query("SELECT COUNT(*) as count FROM reservations")
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - MasterStudio</title>
-    <link rel="stylesheet" href="../../assets/css/admin-style.css">
+    <link rel="stylesheet" href="../assets/css/admin-style.css">
 </head>
 <body>
     <div class="admin-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>MasterStudio</h2>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="index.php" class="active">Dashboard</a></li>
-                    <li><a href="modules/reservations.php">Rezervasyonlar</a></li>
-                    <li><a href="modules/room-types.php">Oda Tipleri</a></li>
-                    <li><a href="modules/rooms.php">Odalar</a></li>
-                    <li><a href="modules/hotel-info.php">Otel Bilgileri</a></li>
-                    <li><a href="modules/pages.php">Sayfalar</a></li>
-                    <li><a href="modules/settings.php">Ayarlar</a></li>
-                    <li><a href="modules/users.php">Kullanıcılar</a></li>
-                </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <p><?php echo htmlspecialchars($admin_username); ?></p>
-                <a href="logout.php" class="btn btn-danger">Çıkış Yap</a>
-            </div>
-        </aside>
+        <?php include 'includes/sidebar.php'; ?>
 
         <main class="content">
             <header class="top-bar">
@@ -53,15 +51,20 @@ $total_reservations = $conn->query("SELECT COUNT(*) as count FROM reservations")
                 <div class="stats-grid">
                     <div class="stat-box">
                         <h3>Toplam Rezervasyon</h3>
-                        <p class="stat-number"><?php echo $total_reservations; ?></p>
+                        <p class="stat-number"><?php echo (int)$stats['total']; ?></p>
                     </div>
                     <div class="stat-box">
                         <h3>Beklemede</h3>
-                        <p class="stat-number"><?php echo $conn->query("SELECT COUNT(*) as count FROM reservations WHERE status='pending'")->fetch_assoc()['count']; ?></p>
+                        <p class="stat-number" style="color: #856404;"><?php echo (int)$stats['pending']; ?></p>
                     </div>
                     <div class="stat-box">
                         <h3>Onaylanan</h3>
-                        <p class="stat-number"><?php echo $conn->query("SELECT COUNT(*) as count FROM reservations WHERE status='confirmed'")->fetch_assoc()['count']; ?></p>
+                        <p class="stat-number" style="color: #155724;"><?php echo (int)$stats['confirmed']; ?></p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Toplam Oda</h3>
+                        <p class="stat-number"><?php echo (int)$room_info['total_rooms']; ?></p>
+                        <small style="color: #666;"><?php echo (int)$room_info['available']; ?> müsait</small>
                     </div>
                 </div>
 
@@ -79,18 +82,31 @@ $total_reservations = $conn->query("SELECT COUNT(*) as count FROM reservations")
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while ($row = $reservations->fetch_assoc()): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($row['guest_name']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['guest_email']); ?></td>
-                                    <td><?php echo $row['check_in_date']; ?></td>
-                                    <td><?php echo htmlspecialchars($row['room_type']); ?></td>
-                                    <td><?php echo $row['status']; ?></td>
-                                    <td>
-                                        <a href="modules/reservations.php?id=<?php echo $row['id']; ?>" class="btn btn-small">Görüntüle</a>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
+                            <?php if ($reservations && $reservations->num_rows > 0): ?>
+                                <?php while ($row = $reservations->fetch_assoc()): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($row['guest_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['guest_email']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['check_in_date']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['room_type']); ?></td>
+                                        <td>
+                                            <span style="padding: 3px 8px; border-radius: 3px; font-size: 12px;
+                                                background: <?php echo $row['status'] === 'confirmed' ? '#d4edda' : ($row['status'] === 'cancelled' ? '#f8d7da' : '#fff3cd'); ?>;
+                                                color: <?php echo $row['status'] === 'confirmed' ? '#155724' : ($row['status'] === 'cancelled' ? '#721c24' : '#856404'); ?>;">
+                                                <?php
+                                                    $status_labels = ['pending' => 'Beklemede', 'confirmed' => 'Onaylı', 'cancelled' => 'İptal'];
+                                                    echo $status_labels[$row['status']] ?? $row['status'];
+                                                ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="modules/reservations.php" class="btn btn-small">Görüntüle</a>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr><td colspan="6" style="text-align: center; padding: 20px;">Henüz rezervasyon bulunmuyor.</td></tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </section>

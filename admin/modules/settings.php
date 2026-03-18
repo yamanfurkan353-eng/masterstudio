@@ -1,42 +1,66 @@
 <?php
 session_start();
 require_once '../../core/config.php';
+require_once '../../core/functions.php';
 require_once '../includes/check-admin.php';
 
 $message = '';
 $error = '';
+$current_page = 'settings';
+$sidebar_base = '../';
 
 // Ayarları al
 $q = $conn->query("SELECT * FROM settings");
 $settings = array();
-while ($row = $q->fetch_assoc()) {
-    $settings[$row['setting_key']] = $row['setting_value'];
+if ($q) {
+    while ($row = $q->fetch_assoc()) {
+        $settings[$row['setting_key']] = $row['setting_value'];
+    }
 }
 
 // Ayarları güncelle
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $site_name = $_POST['site_name'] ?? '';
-    $site_footer_text = $_POST['site_footer_text'] ?? '';
-    $social_facebook = $_POST['social_facebook'] ?? '';
-    $social_twitter = $_POST['social_twitter'] ?? '';
-    $social_instagram = $_POST['social_instagram'] ?? '';
+    verify_csrf_token();
 
-    $settings_update = array(
-        'site_name' => $site_name,
-        'site_footer_text' => $site_footer_text,
-        'social_facebook' => $social_facebook,
-        'social_twitter' => $social_twitter,
-        'social_instagram' => $social_instagram
-    );
+    $site_name = trim($_POST['site_name'] ?? '');
+    $site_footer_text = trim($_POST['site_footer_text'] ?? '');
+    $social_facebook = trim($_POST['social_facebook'] ?? '');
+    $social_twitter = trim($_POST['social_twitter'] ?? '');
+    $social_instagram = trim($_POST['social_instagram'] ?? '');
 
-    foreach ($settings_update as $key => $value) {
-        $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
-        $stmt->bind_param("sss", $key, $value, $value);
-        $stmt->execute();
+    // URL doğrulama
+    $url_fields = ['social_facebook' => $social_facebook, 'social_twitter' => $social_twitter, 'social_instagram' => $social_instagram];
+    $valid = true;
+    foreach ($url_fields as $field => $url) {
+        if (!empty($url) && !filter_var($url, FILTER_VALIDATE_URL)) {
+            $error = 'Geçersiz URL: ' . htmlspecialchars($field);
+            $valid = false;
+            break;
+        }
     }
 
-    $message = 'Ayarlar başarıyla güncellendi!';
+    if ($valid) {
+        $settings_update = array(
+            'site_name' => $site_name,
+            'site_footer_text' => $site_footer_text,
+            'social_facebook' => $social_facebook,
+            'social_twitter' => $social_twitter,
+            'social_instagram' => $social_instagram
+        );
+
+        foreach ($settings_update as $key => $value) {
+            $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+            $stmt->bind_param("sss", $key, $value, $value);
+            $stmt->execute();
+            $stmt->close();
+        }
+
+        $message = 'Ayarlar başarıyla güncellendi!';
+        $settings = $settings_update;
+    }
 }
+
+set_security_headers();
 ?>
 
 <!DOCTYPE html>
@@ -49,22 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="admin-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>MasterStudio</h2>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="../index.php">Dashboard</a></li>
-                    <li><a href="reservations.php">Rezervasyonlar</a></li>
-                    <li><a href="room-types.php">Oda Tipleri</a></li>
-                    <li><a href="rooms.php">Odalar</a></li>
-                    <li><a href="hotel-info.php">Otel Bilgileri</a></li>
-                    <li><a href="pages.php">Sayfalar</a></li>
-                    <li><a href="settings.php" class="active">Ayarlar</a></li>
-                </ul>
-            </nav>
-        </aside>
+        <?php include '../includes/sidebar.php'; ?>
 
         <main class="content">
             <header class="top-bar">
@@ -73,14 +82,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <section class="form-section">
                 <?php if (!empty($message)): ?>
-                    <div class="alert alert-success"><?php echo $message; ?></div>
+                    <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
                 <?php endif; ?>
 
                 <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger"><?php echo $error; ?></div>
+                    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
                 <?php endif; ?>
 
                 <form method="POST" class="form">
+                    <?php echo csrf_field(); ?>
+
                     <h2>Site Bilgileri</h2>
 
                     <div class="form-group">

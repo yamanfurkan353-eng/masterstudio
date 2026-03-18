@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once 'core/config.php';
+require_once 'core/functions.php';
+
+set_security_headers();
 
 $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
 ?>
@@ -12,7 +15,7 @@ $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hakkımızda - MasterStudio Hotel</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/dark.css" id="theme-style">
+    <link rel="stylesheet" href="assets/css/<?php echo ($_SESSION['theme'] ?? 'light'); ?>.css" id="theme-style">
 </head>
 <body>
     <header>
@@ -64,15 +67,15 @@ $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
                         <p style="font-size: 16px; line-height: 1.8; margin-bottom: 15px; color: var(--text-color);">
                             <?php echo nl2br(htmlspecialchars($hotel['description_tr'] ?? 'Lüks ve konforlu konaklama deneyimi')); ?>
                         </p>
-                        
+
                         <h3 style="margin-top: 30px; margin-bottom: 15px;">Bilgilerimiz:</h3>
                         <ul style="list-style: none; color: var(--text-color);">
-                            <li style="margin: 10px 0;">📍 <strong>Adres:</strong> <?php echo htmlspecialchars($hotel['address_tr'] ?? 'İstanbul, Türkiye'); ?></li>
-                            <li style="margin: 10px 0;">📞 <strong>Telefon:</strong> <?php echo htmlspecialchars($hotel['phone'] ?? '+90 212 XXXXXXX'); ?></li>
-                            <li style="margin: 10px 0;">📧 <strong>E-posta:</strong> <?php echo htmlspecialchars($hotel['email'] ?? 'info@masterstudio.com'); ?></li>
-                            <li style="margin: 10px 0;">⭐ <strong>Yıldız Derecelendirmesi:</strong> <?php echo str_repeat('★', $hotel['star_rating'] ?? 5); ?></li>
-                            <li style="margin: 10px 0;">🕐 <strong>Giriş Saati:</strong> <?php echo $hotel['check_in_time'] ?? '14:00'; ?></li>
-                            <li style="margin: 10px 0;">🕐 <strong>Çıkış Saati:</strong> <?php echo $hotel['check_out_time'] ?? '11:00'; ?></li>
+                            <li style="margin: 10px 0;"><strong>Adres:</strong> <?php echo htmlspecialchars($hotel['address_tr'] ?? 'İstanbul, Türkiye'); ?></li>
+                            <li style="margin: 10px 0;"><strong>Telefon:</strong> <?php echo htmlspecialchars($hotel['phone'] ?? '+90 212 XXXXXXX'); ?></li>
+                            <li style="margin: 10px 0;"><strong>E-posta:</strong> <?php echo htmlspecialchars($hotel['email'] ?? 'info@masterstudio.com'); ?></li>
+                            <li style="margin: 10px 0;"><strong>Yıldız Derecelendirmesi:</strong> <?php echo (int)($hotel['star_rating'] ?? 5); ?> Yıldız</li>
+                            <li style="margin: 10px 0;"><strong>Giriş Saati:</strong> <?php echo htmlspecialchars($hotel['check_in_time'] ?? '14:00'); ?></li>
+                            <li style="margin: 10px 0;"><strong>Çıkış Saati:</strong> <?php echo htmlspecialchars($hotel['check_out_time'] ?? '11:00'); ?></li>
                         </ul>
                     </div>
                 </div>
@@ -85,15 +88,15 @@ $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
                 <h2 style="text-align: center; margin-bottom: 40px; font-size: 32px;">Neden Bizi Seçmelisiniz?</h2>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
                     <div style="text-align: center; padding: 20px;">
-                        <h3 style="color: #667eea; margin-bottom: 10px; font-size: 20px;">🏆 Kalite Hizmeti</h3>
+                        <h3 style="color: #667eea; margin-bottom: 10px; font-size: 20px;">Kalite Hizmeti</h3>
                         <p style="color: var(--text-color);">Uluslararası standartlarda hizmet kalitesi ile öne çıkıyoruz.</p>
                     </div>
                     <div style="text-align: center; padding: 20px;">
-                        <h3 style="color: #667eea; margin-bottom: 10px; font-size: 20px;">👥 Eğitimli Personel</h3>
+                        <h3 style="color: #667eea; margin-bottom: 10px; font-size: 20px;">Eğitimli Personel</h3>
                         <p style="color: var(--text-color);">Müşteri memnuniyeti için eğitimli ve deneyimli personel.</p>
                     </div>
                     <div style="text-align: center; padding: 20px;">
-                        <h3 style="color: #667eea; margin-bottom: 10px; font-size: 20px;">💎 Lüks Oda</h3>
+                        <h3 style="color: #667eea; margin-bottom: 10px; font-size: 20px;">Lüks Oda</h3>
                         <p style="color: var(--text-color);">Modern iç tasarım ve son teknoloji donanım ile uygun odalar.</p>
                     </div>
                 </div>
@@ -105,9 +108,9 @@ $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
         <div class="container">
             <p>&copy; <?php echo date('Y'); ?> MasterStudio Hotel. Tüm Hakları Saklıdır.</p>
             <div class="social-links">
-                <a href="https://facebook.com" target="_blank">Facebook</a>
-                <a href="https://twitter.com" target="_blank">Twitter</a>
-                <a href="https://instagram.com" target="_blank">Instagram</a>
+                <a href="#" target="_blank">Facebook</a>
+                <a href="#" target="_blank">Twitter</a>
+                <a href="#" target="_blank">Instagram</a>
             </div>
         </div>
     </footer>

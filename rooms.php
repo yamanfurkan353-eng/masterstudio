@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once 'core/config.php';
+require_once 'core/functions.php';
+
+set_security_headers();
 
 $room_types = $conn->query("SELECT * FROM room_types WHERE is_active = TRUE");
 ?>
@@ -12,7 +15,7 @@ $room_types = $conn->query("SELECT * FROM room_types WHERE is_active = TRUE");
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Odalarımız - MasterStudio Hotel</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/dark.css" id="theme-style">
+    <link rel="stylesheet" href="assets/css/<?php echo ($_SESSION['theme'] ?? 'light'); ?>.css" id="theme-style">
 </head>
 <body>
     <header>
@@ -54,37 +57,41 @@ $room_types = $conn->query("SELECT * FROM room_types WHERE is_active = TRUE");
         <section style="padding: 60px 0;">
             <div class="container">
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px;">
-                    <?php while ($room = $room_types->fetch_assoc()): ?>
-                        <div style="background: var(--light-bg); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.3s ease;">
-                            <div style="height: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
-                                Oda Görseli
-                            </div>
-                            <div style="padding: 25px;">
-                                <h3 style="margin-bottom: 10px; color: var(--text-color);"><?php echo htmlspecialchars($room['name_tr']); ?></h3>
-                                <p style="color: #666; margin-bottom: 15px;"><?php echo htmlspecialchars($room['description_tr']); ?></p>
-                                
-                                <div style="margin: 15px 0; padding: 15px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
-                                    <p style="color: var(--text-color); margin: 8px 0;">
-                                        <strong>👥 Kapasite:</strong> <?php echo $room['max_guests']; ?> Misafir
-                                    </p>
-                                    <p style="color: var(--text-color); margin: 8px 0;">
-                                        <strong>💰 Fiyat:</strong> ₺<?php echo number_format($room['price_per_night'], 2); ?>/Gece
-                                    </p>
+                    <?php if ($room_types && $room_types->num_rows > 0): ?>
+                        <?php while ($room = $room_types->fetch_assoc()): ?>
+                            <div style="background: var(--light-bg); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.3s ease;">
+                                <div style="height: 250px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
+                                    Oda Görseli
                                 </div>
+                                <div style="padding: 25px;">
+                                    <h3 style="margin-bottom: 10px; color: var(--text-color);"><?php echo htmlspecialchars($room['name_tr']); ?></h3>
+                                    <p style="color: #666; margin-bottom: 15px;"><?php echo htmlspecialchars($room['description_tr'] ?? ''); ?></p>
 
-                                <?php if (!empty($room['amenities_tr'])): ?>
-                                    <p style="color: var(--text-color); margin-bottom: 10px;"><strong>✨ Kolaylıklar:</strong></p>
-                                    <ul style="list-style: none; color: var(--text-color);">
-                                        <?php foreach (explode(',', $room['amenities_tr']) as $amenity): ?>
-                                            <li style="margin: 5px 0;">✓ <?php echo trim($amenity); ?></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
+                                    <div style="margin: 15px 0; padding: 15px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+                                        <p style="color: var(--text-color); margin: 8px 0;">
+                                            <strong>Kapasite:</strong> <?php echo (int)$room['max_guests']; ?> Misafir
+                                        </p>
+                                        <p style="color: var(--text-color); margin: 8px 0;">
+                                            <strong>Fiyat:</strong> <?php echo number_format($room['price_per_night'], 2); ?> TL/Gece
+                                        </p>
+                                    </div>
 
-                                <a href="booking.php?room_type=<?php echo urlencode($room['name_tr']); ?>" class="btn btn-primary" style="margin-top: 20px; width: 100%; text-align: center;">Rezervasyon Yap</a>
+                                    <?php if (!empty($room['amenities_tr'])): ?>
+                                        <p style="color: var(--text-color); margin-bottom: 10px;"><strong>Kolaylıklar:</strong></p>
+                                        <ul style="list-style: none; color: var(--text-color);">
+                                            <?php foreach (explode(',', $room['amenities_tr']) as $amenity): ?>
+                                                <li style="margin: 5px 0;"><?php echo htmlspecialchars(trim($amenity)); ?></li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+
+                                    <a href="booking.php?room_type=<?php echo urlencode($room['name_tr']); ?>" class="btn btn-primary" style="margin-top: 20px; width: 100%; text-align: center;">Rezervasyon Yap</a>
+                                </div>
                             </div>
-                        </div>
-                    <?php endwhile; ?>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <p style="text-align: center; color: #666; grid-column: 1 / -1;">Henüz oda tipi eklenmemiş.</p>
+                    <?php endif; ?>
                 </div>
             </div>
         </section>
@@ -94,9 +101,9 @@ $room_types = $conn->query("SELECT * FROM room_types WHERE is_active = TRUE");
         <div class="container">
             <p>&copy; <?php echo date('Y'); ?> MasterStudio Hotel. Tüm Hakları Saklıdır.</p>
             <div class="social-links">
-                <a href="https://facebook.com" target="_blank">Facebook</a>
-                <a href="https://twitter.com" target="_blank">Twitter</a>
-                <a href="https://instagram.com" target="_blank">Instagram</a>
+                <a href="#" target="_blank">Facebook</a>
+                <a href="#" target="_blank">Twitter</a>
+                <a href="#" target="_blank">Instagram</a>
             </div>
         </div>
     </footer>

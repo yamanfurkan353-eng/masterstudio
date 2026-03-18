@@ -1,21 +1,24 @@
 <?php
 session_start();
 require_once 'core/config.php';
+require_once 'core/functions.php';
 
-// Talep edilen sayfa slug'ını al
-$page_slug = $_GET['page'] ?? 'hakkimizda';
-$page_slug = htmlspecialchars(trim($page_slug));
+set_security_headers();
 
-// Veritabanından sayfayı al
+// Talep edilen sayfa slug'ını al ve sanitize et
+$page_slug = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_GET['page'] ?? 'hakkimizda')));
+
+// Veritabanından sayfayı al - prepared statement kullanılıyor
 $stmt = $conn->prepare("SELECT * FROM pages WHERE slug = ? AND is_published = 1");
 $stmt->bind_param("s", $page_slug);
 $stmt->execute();
 $page = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
 if (!$page) {
     http_response_code(404);
     $page_title = '404 - Sayfa Bulunamadı';
-    $page_content = '<h2>Sayfa Bulunamadı</h2><p>Aradığınız sayfa bulunamadı.</p>';
+    $page_content = '<h2>Sayfa Bulunamadı</h2><p>Aradığınız sayfa bulunamadı. <a href="index.php">Ana sayfaya dönün</a>.</p>';
 } else {
     $page_title = $page['title_tr'];
     $page_content = nl2br(htmlspecialchars($page['content_tr']));
@@ -29,13 +32,13 @@ if (!$page) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?> - MasterStudio Hotel</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/dark.css" id="theme-style">
+    <link rel="stylesheet" href="assets/css/<?php echo ($_SESSION['theme'] ?? 'light'); ?>.css" id="theme-style">
 </head>
 <body>
     <header>
         <div class="container">
             <div class="logo">
-                <a href="index.php">🏨 MasterStudio</a>
+                <a href="index.php">MasterStudio</a>
             </div>
             <nav>
                 <ul>
@@ -80,9 +83,9 @@ if (!$page) {
         <div class="container">
             <p>&copy; <?php echo date('Y'); ?> MasterStudio Hotel. Tüm Hakları Saklıdır.</p>
             <div class="social-links">
-                <a href="https://facebook.com" target="_blank">Facebook</a>
-                <a href="https://twitter.com" target="_blank">Twitter</a>
-                <a href="https://instagram.com" target="_blank">Instagram</a>
+                <a href="#" target="_blank">Facebook</a>
+                <a href="#" target="_blank">Twitter</a>
+                <a href="#" target="_blank">Instagram</a>
             </div>
         </div>
     </footer>

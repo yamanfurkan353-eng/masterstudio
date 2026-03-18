@@ -29,6 +29,7 @@ $hotel = $conn->query("SELECT * FROM hotel_info LIMIT 1")->fetch_assoc();
                     <li><a href="rooms.php">Odalarımız</a></li>
                     <li><a href="about.php" class="active">Hakkımızda</a></li>
                     <li><a href="contact.php">İletişim</a></li>
+                    <li><a href="reservation-check.php">Rezervasyon Sorgula</a></li>
                     <li><a href="booking.php" class="btn btn-primary">Şimdi Rezervasyon Yap</a></li>
                 </ul>
             </nav>

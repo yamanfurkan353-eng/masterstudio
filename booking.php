@@ -85,6 +85,7 @@ $selected_room = sanitize_input($_GET['room_type'] ?? '');
                     <li><a href="rooms.php">Odalarımız</a></li>
                     <li><a href="about.php">Hakkımızda</a></li>
                     <li><a href="contact.php">İletişim</a></li>
+                    <li><a href="reservation-check.php">Rezervasyon Sorgula</a></li>
                     <li><a href="booking.php" class="btn btn-primary active">Şimdi Rezervasyon Yap</a></li>
                 </ul>
             </nav>

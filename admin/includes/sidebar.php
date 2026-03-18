@@ -11,8 +11,9 @@
             <li><a href="<?php echo $sidebar_base ?? ''; ?>modules/hotel-info.php" <?php echo ($current_page ?? '') === 'hotel-info' ? 'class="active"' : ''; ?>>Otel Bilgileri</a></li>
             <li><a href="<?php echo $sidebar_base ?? ''; ?>modules/pages.php" <?php echo ($current_page ?? '') === 'pages' ? 'class="active"' : ''; ?>>Sayfalar</a></li>
             <li><a href="<?php echo $sidebar_base ?? ''; ?>modules/settings.php" <?php echo ($current_page ?? '') === 'settings' ? 'class="active"' : ''; ?>>Ayarlar</a></li>
+            <li><a href="<?php echo $sidebar_base ?? ''; ?>modules/reports.php" <?php echo ($current_page ?? '') === 'reports' ? 'class="active"' : ''; ?>>Raporlar</a></li>
             <?php if (isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'admin'): ?>
-            <li><a href="<?php echo $sidebar_base ?? ''; ?>modules/users.php" <?php echo ($current_page ?? '') === 'users' ? 'class="active"' : ''; ?>>Kullanicılar</a></li>
+            <li><a href="<?php echo $sidebar_base ?? ''; ?>modules/users.php" <?php echo ($current_page ?? '') === 'users' ? 'class="active"' : ''; ?>>Kullanıcılar</a></li>
             <?php endif; ?>
         </ul>
     </nav>
